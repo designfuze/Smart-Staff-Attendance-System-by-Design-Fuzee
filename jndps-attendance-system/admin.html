@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | JNDPS Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA2dsPQ1_xT1x0e-glBGKYyliSq_TcU3ko"></script>
+</head>
+<body class="bg-[#0D0D0D] text-white">
+
+    <div class="flex min-h-screen">
+        <!-- Sidebar (Desktop focus) -->
+        <aside class="hidden md:flex w-64 glass flex-col p-6 sticky top-0 h-screen">
+            <img src="images/logo.png" class="w-12 h-12 mb-8">
+            <nav class="space-y-4 flex-1">
+                <a href="#" class="block p-3 rounded-lg bg-red-500/10 text-red-500 font-medium">Dashboard</a>
+                <a href="#" class="block p-3 rounded-lg hover:bg-white/5 transition-colors">Staff List</a>
+                <a href="#" class="block p-3 rounded-lg hover:bg-white/5 transition-colors">Reports</a>
+                <a href="#" class="block p-3 rounded-lg hover:bg-white/5 transition-colors">Settings</a>
+            </nav>
+            <button id="logoutBtn" class="p-3 text-left text-gray-400 hover:text-white">Logout</button>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 p-6 md:p-10 space-y-10">
+            <!-- Top Header -->
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 class="text-3xl font-bold">Admin Overview</h1>
+                    <p class="text-gray-400 text-sm">Real-time attendance tracking for JNDPS</p>
+                </div>
+                <div class="flex gap-2">
+                    <button id="exportBtn" class="btn-secondary flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                        Export Excel
+                    </button>
+                </div>
+            </div>
+
+            <!-- Dashboard Stats -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 slide-up">
+                <div class="glass-card p-4 text-center">
+                    <div id="totalTeachers" class="stat-value">0</div>
+                    <div class="stat-label">Total Staff</div>
+                </div>
+                <div class="glass-card p-4 text-center">
+                    <div id="presentToday" class="stat-value">0</div>
+                    <div class="stat-label text-green-500">Present Today</div>
+                </div>
+                <div class="glass-card p-4 text-center">
+                    <div id="absentToday" class="stat-value">0</div>
+                    <div class="stat-label text-red-500">Absent Today</div>
+                </div>
+                <div class="glass-card p-4 text-center">
+                    <div id="lateToday" class="stat-value">0</div>
+                    <div class="stat-label text-yellow-500">Late Arrivals</div>
+                </div>
+            </div>
+
+            <!-- Map View -->
+            <div class="glass-card overflow-hidden fade-in">
+                <div class="p-4 border-b border-white/5 flex justify-between items-center">
+                    <h3 class="font-medium">Live Staff Locations</h3>
+                    <span class="text-[10px] bg-red-500/20 text-red-500 px-2 py-1 rounded-full uppercase">Live Geofence</span>
+                </div>
+                <div id="map" class="h-80 w-full bg-black/20"></div>
+            </div>
+
+            <!-- Attendance Table -->
+            <div class="glass-card overflow-x-auto fade-in">
+                <table class="custom-table">
+                    <thead>
+                        <tr>
+                            <th>Staff</th>
+                            <th>Time</th>
+                            <th>Photo</th>
+                            <th>Coordinates</th>
+                            <th>Device</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="attendanceBody">
+                        <!-- Dynamic Loading -->
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <script type="module">
+        import { fetchDashboardData } from './js/admin-dashboard.js';
+        import { downloadAttendanceExcel } from './js/excel-export.js';
+        import { initAdminMap, updateMapMarkers } from './js/map.js';
+        import { initAnimations } from './js/app.js';
+
+        let currentRecords = [];
+
+        async function loadDashboard() {
+            const data = await fetchDashboardData();
+            currentRecords = data.records;
+
+            // Update Widgets
+            document.getElementById('totalTeachers').innerText = data.totalTeachers;
+            document.getElementById('presentToday').innerText = data.presentCount;
+            document.getElementById('absentToday').innerText = data.absentCount;
+            document.getElementById('lateToday').innerText = data.lateCount;
+
+            // Update Map
+            updateMapMarkers(currentRecords);
+
+            // Update Table
+            const body = document.getElementById('attendanceBody');
+            body.innerHTML = currentRecords.map(r => `
+                <tr>
+                    <td>
+                        <div class="font-medium">${r.teacherName}</div>
+                        <div class="text-[10px] text-gray-500">${r.teacherID}</div>
+                    </td>
+                    <td class="text-sm">${r.time}</td>
+                    <td><img src="${r.photoURL}" class="teacher-photo border border-white/10" onclick="window.open('${r.photoURL}')"></td>
+                    <td class="text-[10px] text-gray-400">${r.latitude.toFixed(4)}, ${r.longitude.toFixed(4)}</td>
+                    <td class="text-[10px] font-mono opacity-50">${r.deviceID}</td>
+                    <td><span class="bg-green-500/10 text-green-500 px-2 py-1 rounded text-[10px]">${r.attendanceStatus}</span></td>
+                </tr>
+            `).join('');
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+             if (localStorage.getItem('isAdmin') !== 'true') {
+                window.location.href = 'login.html';
+                return;
+             }
+             
+             initAnimations();
+             initAdminMap('map');
+             loadDashboard();
+
+             // Refresh data every 2 mins
+             setInterval(loadDashboard, 120000);
+        });
+
+        document.getElementById('exportBtn').addEventListener('click', () => {
+            downloadAttendanceExcel(currentRecords);
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.removeItem('isAdmin');
+            window.location.href = 'login.html';
+        });
+    </script>
+</body>
+</html>

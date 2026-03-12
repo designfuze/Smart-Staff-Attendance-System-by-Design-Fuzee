@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JNDPS Attendance System | by Design Fuze</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="css/style.css">
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0D0D0D">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-4">
+
+    <div class="glass-card attendance-card max-w-md w-full text-center fade-in">
+        <div class="logo-container mx-auto">
+            <img src="images/logo.png" alt="School Logo" class="w-full h-full object-contain">
+        </div>
+        
+        <h1 class="text-2xl font-bold mb-2">Junior New Delhi Public School</h1>
+        <p class="text-sm text-gray-400 mb-8">Attendance & Staff Management System</p>
+        
+        <div class="space-y-4 slide-up">
+            <a href="login.html" class="block w-full btn-primary text-center">Get Started</a>
+            <p class="text-[10px] text-gray-500 mt-10">
+                Design & Coding by Design Fuze
+            </p>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="mt-12 text-center text-xs text-gray-400 fade-in">
+        <p>A.R Complex, Balwa Chowk, Near Jhulan Mela Ground</p>
+        <p>Jokihat, Araria, Bihar 854329</p>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script type="module">
+        import { initAnimations } from './js/app.js';
+        initAnimations();
+
+        // PWA Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js');
+            });
+        }
+    </script>
+</body>
+</html>
